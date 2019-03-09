@@ -250,13 +250,6 @@ class HTTPClient:
 
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
-    async def current_user_playlists(self, limit, offset):
-        r = Route(GET,
-                  "/me/playlists",
-                  limit=limit, offset=offset)
-
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
     async def user_playlists(self, user, limit, offset):
         r = Route(GET,
                   f"/users/{user}/playlists",
@@ -275,7 +268,7 @@ class HTTPClient:
 
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
-    async def user_playlist_tracks(self, user, playlist_id, fields, limit, offset, market):
+    async def get_playlist_tracks(self, user, playlist_id, fields, limit, offset, market):
         plid = get_id('playlist', playlist_id)
         r = Route(GET,
                   f"/users/{user}/playlists/{plid}/tracks",
@@ -283,7 +276,7 @@ class HTTPClient:
 
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
-    async def user_playlist_create(self, user, name, public):
+    async def playlist_create(self, user, name, public):
         data = {'name': name, 'public': public}
         r = Route(POST,
                   f"/users/{user}/playlists",
@@ -291,7 +284,7 @@ class HTTPClient:
 
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
-    async def user_playlist_change_details(self, user, playlist_id, name, public, collaborative):
+    async def playlist_change_details(self, user, playlist_id, name, public, collaborative):
         data = {}
 
         if isinstance(name, str):
@@ -306,13 +299,13 @@ class HTTPClient:
 
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
-    async def user_playlist_unfollow(self, user, playlist_id):
+    async def unfollow_playlist(self, user, playlist_id):
         r = Route(DELETE,
                   f"/users/{user}/playlists/{playlist_id}/followers")
 
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
-    async def user_playlist_add_tracks(self, user, _playlist_id, tracks, position):
+    async def playlist_add_tracks(self, user, _playlist_id, tracks, position):
         playlist_id = get_id('playlist', _playlist_id)
         ftracks = [get_uri('track', tid) for tid in tracks]
         r = Route(POST,
@@ -321,7 +314,7 @@ class HTTPClient:
 
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
-    async def user_playlist_replace_tracks(self, user, _playlist_id, _tracks):
+    async def playlist_replace_tracks(self, user, _playlist_id, _tracks):
         playlist_id = get_id('playlist', _playlist_id)
         tracks = [get_uri('track', tid) for tid in _tracks]
         payload = {"uris": tracks}
@@ -331,7 +324,8 @@ class HTTPClient:
 
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
-    async def user_playlist_reorder_tracks(self, user, _playlist_id, range_start, insert_before, range_length, snapshot_id):
+    async def playlist_reorder_tracks(self, user, _playlist_id, range_start, insert_before, range_length,
+                                      snapshot_id):
         playlist_id = get_id('playlist', _playlist_id)
         payload = {"range_start": range_start,
                    "range_length": range_length,
@@ -344,36 +338,33 @@ class HTTPClient:
 
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
-    async def user_playlist_remove_all_occurrences_of_tracks(self, user, _playlist_id, _tracks, snapshot_id):
+    async def user_playlist_remove_tracks(self, user, _playlist_id, _tracks, mode, snapshot_id):
         playlist_id = get_id('playlist', _playlist_id)
-        tracks = [get_uri('track', tid) for tid in _tracks]
-        payload = {"tracks": [{"uri": track} for track in tracks]}
-        if snapshot_id:
-            payload["snapshot_id"] = snapshot_id
+        if mode == "all":
+            tracks = [get_uri('track', tid) for tid in _tracks]
+            payload = {"tracks": [{"uri": track} for track in tracks]}
+            if snapshot_id:
+                payload["snapshot_id"] = snapshot_id
+        elif mode == "specific":
+            tracks = []
+            for tr in _tracks:
+                tracks.append({
+                    "uri": get_uri("track", tr["uri"]),
+                    "positions": tr["positions"],
+                })
+            payload = {"tracks": tracks}
+            if snapshot_id:
+                payload["snapshot_id"] = snapshot_id
+        else:
+            raise LookupError("mode must be all or specific")
+
         r = Route(DELETE,
                   f"/users/{user}/playlists/{playlist_id}/tracks",
                   payload=payload)
 
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
-    async def user_playlist_remove_specific_occurrences_of_tracks(self, user, _playlist_id, _tracks, snapshot_id):
-        playlist_id = get_id('playlist', _playlist_id)
-        tracks = []
-        for tr in _tracks:
-            tracks.append({
-                "uri": get_uri("track", tr["uri"]),
-                "positions": tr["positions"],
-            })
-        payload = {"tracks": tracks}
-        if snapshot_id:
-            payload["snapshot_id"] = snapshot_id
-        r = Route(DELETE,
-                  f"/users/{user}/playlists/{playlist_id}/tracks",
-                  payload=payload)
-
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def user_playlist_follow_playlist(self, playlist_owner_id, playlist_id):
+    async def get_playlist_follower(self, playlist_owner_id, playlist_id):
         r = Route(PUT,
                   f"/users/{playlist_owner_id}/playlists/{playlist_id}/followers")
 
@@ -384,84 +375,6 @@ class HTTPClient:
                   "/users/{}/playlists/{}/followers/contains?ids={}"
                   .format(playlist_owner_id, playlist_id, ','.join(user_ids)))
 
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def me(self):
-        r = Route(GET, '/me/')
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def current_user(self):
-
-        return self.me()
-
-    async def current_user_saved_albums(self, limit, offset):
-        r = Route(GET,
-                  '/me/albums',
-                  limit=limit, offset=offset)
-
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def current_user_saved_tracks(self, limit, offset):
-        r = Route(GET,
-                  '/me/tracks',
-                  limit=limit, offset=offset)
-
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def current_user_followed_artists(self, limit, after):
-        r = Route(GET,
-                  '/me/following',
-                  type='artist', limit=limit, after=after)
-
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def current_user_saved_tracks_delete(self, tracks):
-        track_list = []
-        if tracks:
-            track_list = [get_id('track', t) for t in tracks]
-        r = Route(DELETE,
-                  '/me/tracks/?ids=' + ','.join(track_list))
-
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def current_user_saved_tracks_contains(self, tracks):
-        track_list = []
-        if tracks is not None:
-            track_list = [get_id('track', t) for t in tracks]
-        r = Route(GET,
-                  '/me/tracks/contains?ids=' + ','.join(track_list))
-
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def current_user_saved_tracks_add(self, tracks):
-        track_list = []
-        if tracks is not None:
-            track_list = [get_id('track', t) for t in tracks]
-        r = Route(PUT,
-                  '/me/tracks/?ids=' + ','.join(track_list))
-
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def current_user_top_artists(self, limit, offset, time_range):
-        r = Route(GET,
-                  '/me/top/artists',
-                  time_range=time_range, limit=limit, offset=offset)
-
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def current_user_top_tracks(self, limit, offset, time_range):
-        r = Route(GET,
-                  '/me/top/tracks',
-                  time_range=time_range, limit=limit, offset=offset)
-
-        return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
-
-    async def current_user_saved_albums_add(self, albums=None):
-        if albums is None:
-            albums = []
-        alist = [get_id('album', a) for a in albums]
-        r = Route(PUT,
-                  '/me/albums?ids=' + ','.join(alist))
         return await asyncio.wait_for(self.request(r), self.timeout, loop=self.loop)
 
     async def featured_playlists(self, locale, country, timestamp, limit, offset):
