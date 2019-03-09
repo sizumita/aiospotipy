@@ -1,8 +1,13 @@
-#Aiospotipy aiospotipy is an API wrapper for Spotify written in python.
+============
+Aiospotipy
+============
+
+Aiospotipy is an API wrapper for Spotify written in python.
 
 This is based on asyncio and spotipy.
 
-#Quick Example
+Quick Example
+--------------
 
 .. code:: python
 
@@ -13,8 +18,3 @@ This is based on asyncio and spotipy.
 
    # Search for an artist by its name
    search_results = await spotify.search_artist(q="kalafina")
-
-
-
-
-
