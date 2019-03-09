@@ -82,7 +82,7 @@ README.md
 *.zip
 # Sonarlint plugin
 .idea/sonarlint
-
+.DS_Store
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
