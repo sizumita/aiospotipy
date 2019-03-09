@@ -37,6 +37,10 @@ spotify = Spotify(SpotifyCredentials("CLIENT_ID", "CLIENT_SECRET"))
  
 # Search for an track by its id
 search_results = await spotify.search(q='3n3Ppam7vgaVa1iaRUc9Lp', _type='track')
+
+# Show my playlists:
+my_playlists = await spotify.me.playlists()
+
 ```
 
 # License
