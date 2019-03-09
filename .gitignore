@@ -65,7 +65,9 @@ crashlytics-build.properties
 fabric.properties
 
 README.md
-
+dist/
+build/
+aiospotipy.egg-info/e
 # Editor-based Rest Client
 .idea/httpRequests
 

@@ -2,7 +2,7 @@
 Aiospotipy
 ============
 
-Aiospotipy is an API wrapper for Spotify written in python.
+aiospotipy is an API wrapper for Spotify written in python.
 
 This is based on asyncio and spotipy.
 
