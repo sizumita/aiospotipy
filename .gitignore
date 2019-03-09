@@ -79,7 +79,7 @@ README.md
 .idea/modules.xml
 .idea/misc.xml
 # *.ipr
-
+*.zip
 # Sonarlint plugin
 .idea/sonarlint
 
